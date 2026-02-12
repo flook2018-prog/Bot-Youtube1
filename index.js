@@ -58,4 +58,12 @@ async function startBot() {
 startBot();
 
 process.once("SIGINT", () => {
-  console.log("SIGIN")
+  console.log("SIGINT received");
+  bot.stop("SIGINT");
+});
+
+process.once("SIGTERM", () => {
+  console.log("SIGTERM received");
+  bot.stop("SIGTERM");
+});
+
