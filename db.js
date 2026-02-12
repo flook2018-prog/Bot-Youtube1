@@ -5,7 +5,9 @@ const pool = mysql.createPool({
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE,
-  port: process.env.DB_PORT || 3306
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10
 });
 
 async function initDatabase() {
@@ -13,17 +15,30 @@ async function initDatabase() {
     const connection = await pool.getConnection();
     console.log("✅ Connected to MySQL");
 
+    // ===== USERS TABLE =====
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS channels (
+      CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        channel_id VARCHAR(255) NOT NULL,
-        channel_name VARCHAR(255),
-        last_video_id VARCHAR(255),
+        group_id BIGINT UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    console.log("✅ Table 'channels' is ready");
+    // ===== CHANNELS TABLE =====
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS channels (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        channel_id VARCHAR(255) NOT NULL,
+        channel_name VARCHAR(255),
+        code VARCHAR(10) UNIQUE,
+        last_status VARCHAR(50) DEFAULT 'Unknown',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    console.log("✅ Tables are ready");
     connection.release();
   } catch (err) {
     console.error("❌ Database init error:", err.message);
