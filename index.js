@@ -50,12 +50,10 @@ require("./monitor")(bot);
 
 async function startBot() {
   try {
-    console.log("กำลังลบ webhook...");
-    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-    console.log("ลบ webhook สำเร็จ");
-
     console.log("กำลัง launch bot...");
-    await bot.launch();
+    await bot.launch({
+      dropPendingUpdates: true
+    });
     console.log("🤖 Bot is running...");
 
     if (GROUP_CHAT_ID) {
@@ -70,6 +68,7 @@ async function startBot() {
     console.error("Bot start error:", err);
   }
 }
+
 
 startBot();
 
