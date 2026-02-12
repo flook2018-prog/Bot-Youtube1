@@ -15,8 +15,6 @@ if (!BOT_TOKEN) {
 const app = express();
 const bot = new Telegraf(BOT_TOKEN);
 
-
-
 // =========================
 // ✅ CHECK
 // =========================
@@ -24,10 +22,8 @@ bot.command("check", async (ctx) => {
   await ctx.reply("✅ บอททำงานปกติ");
 });
 
-
-
 // =========================
-// ✅ ADD CHANNEL (รองรับ URL)
+// ✅ ADD CHANNEL
 // =========================
 bot.command("add", async (ctx) => {
   const args = ctx.message.text.split(" ");
@@ -70,21 +66,16 @@ bot.command("add", async (ctx) => {
       return ctx.reply("ช่องนี้ถูกเพิ่มแล้ว ⚠️");
     }
 
-    // เพิ่มก่อนเพื่อให้ auto increment ทำงาน
+    // เพิ่มช่อง
     const [result] = await db.query(
-      "INSERT INTO channels (channel_id, user_id, last_status) VALUES (?, ?, 'Unknown')",
-      [channelId, userId]
+      "INSERT INTO channels (channel_id, user_id, channel_name, last_status) VALUES (?, ?, ?, 'Unknown')",
+      [channelId, userId, info.name]
     );
 
     const insertedId = result.insertId;
 
-    const [row] = await db.query(
-      "SELECT code_number FROM channels WHERE id = ?",
-      [insertedId]
-    );
-
-    const number = row[0].code_number;
-    const code = "CH" + String(number).padStart(4, "0");
+    // ใช้ auto increment สร้างรหัส
+    const code = "CH" + String(insertedId).padStart(4, "0");
 
     await db.query(
       "UPDATE channels SET code = ? WHERE id = ?",
@@ -101,10 +92,8 @@ bot.command("add", async (ctx) => {
   }
 });
 
-
-
 // =========================
-// ✅ REMOVE BY CODE
+// ✅ REMOVE
 // =========================
 bot.command("remove", async (ctx) => {
   const args = ctx.message.text.split(" ");
@@ -145,10 +134,8 @@ bot.command("remove", async (ctx) => {
   }
 });
 
-
-
 // =========================
-// ✅ LIST CHANNELS
+// ✅ LIST
 // =========================
 bot.command("list", async (ctx) => {
   try {
@@ -168,52 +155,4 @@ bot.command("list", async (ctx) => {
     const [channels] = await db.query(
       "SELECT channel_id, code FROM channels WHERE user_id = ?",
       [userId]
-    );
-
-    if (!channels.length) {
-      return ctx.reply("ยังไม่มีช่องที่เพิ่มไว้");
-    }
-
-    const list = channels
-      .map(c => `• ${c.code} → ${c.channel_id}`)
-      .join("\n");
-
-    ctx.reply(`📋 รายการช่อง:\n\n${list}`);
-
-  } catch (err) {
-    console.error(err);
-    ctx.reply("เกิดข้อผิดพลาด");
-  }
-});
-
-
-
-// =========================
-// WEBHOOK
-// =========================
-app.use(bot.webhookCallback("/bot"));
-
-app.get("/", (req, res) => {
-  res.status(200).send("OK");
-});
-
-app.listen(PORT, "0.0.0.0", async () => {
-  console.log(`🌐 Web server running on port ${PORT}`);
-
-  try {
-    const WEBHOOK_URL = process.env.WEBHOOK_URL;
-
-    if (!WEBHOOK_URL) {
-      throw new Error("WEBHOOK_URL not set");
-    }
-
-    await bot.telegram.setWebhook(`${WEBHOOK_URL}/bot`);
-    console.log("Webhook set สำเร็จ");
-
-  } catch (err) {
-    console.error("Bot start error:", err);
-  }
-});
-
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+    )
