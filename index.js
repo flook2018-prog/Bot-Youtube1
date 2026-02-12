@@ -40,6 +40,21 @@ bot.launch().then(async () => {
   }
 });
 
+bot.launch().then(async () => {
+  console.log("🤖 Bot is running...");
+
+  try {
+    await bot.telegram.sendMessage(
+      "-1003882788938",
+      "🔥 TEST MESSAGE"
+    );
+    console.log("ส่งข้อความสำเร็จ");
+  } catch (err) {
+    console.error("ส่งข้อความไม่สำเร็จ:", err);
+  }
+});
+
+
 // ป้องกัน crash
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
