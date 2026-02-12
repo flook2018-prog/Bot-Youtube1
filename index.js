@@ -11,12 +11,12 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// ====== DEBUG MESSAGE ======
+// ===== DEBUG =====
 bot.on("text", (ctx) => {
   console.log("MESSAGE:", ctx.message.text);
 });
 
-// ====== COMMAND ======
+// ===== COMMAND =====
 bot.command("check", async (ctx) => {
   try {
     await ctx.reply("✅ บอททำงานปกติ");
@@ -25,36 +25,24 @@ bot.command("check", async (ctx) => {
   }
 });
 
-// ====== LOAD MONITOR (ส่ง bot เข้าไป) ======
+// ===== LOAD MONITOR =====
 require("./monitor")(bot);
 
-// ====== LAUNCH ======
-bot.launch().then(async () => {
-  console.log("🤖 Bot is running...");
-
-  if (GROUP_CHAT_ID) {
-    await bot.telegram.sendMessage(
-      GROUP_CHAT_ID,
-      "🚀 Bot Started"
-    );
-  }
-});
-
+// ===== LAUNCH =====
 bot.launch().then(async () => {
   console.log("🤖 Bot is running...");
 
   try {
     await bot.telegram.sendMessage(
-      "-1003882788938",
-      "🔥 TEST MESSAGE"
+      GROUP_CHAT_ID,
+      "🚀 Bot Started"
     );
-    console.log("ส่งข้อความสำเร็จ");
+    console.log("ส่งข้อความเข้า Group สำเร็จ");
   } catch (err) {
-    console.error("ส่งข้อความไม่สำเร็จ:", err);
+    console.error("ส่งเข้า Group ไม่สำเร็จ:", err.message);
   }
 });
 
-
-// ป้องกัน crash
+// graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
