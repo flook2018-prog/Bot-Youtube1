@@ -58,4 +58,4 @@ async function startBot() {
 startBot();
 
 process.once("SIGINT", () => {
-  console.log("SIGIN
+  console.log("SIGIN")
