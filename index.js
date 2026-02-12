@@ -11,17 +11,14 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// 👇 ต้องอยู่หลังประกาศ bot
+require("./monitor")(bot); // 👈 สำคัญมาก
+
 bot.on("text", (ctx) => {
   console.log("MESSAGE:", ctx.message.text);
 });
 
 bot.command("check", async (ctx) => {
-  try {
-    await ctx.reply("✅ บอททำงานปกติ");
-  } catch (err) {
-    console.error(err);
-  }
+  await ctx.reply("✅ บอททำงานปกติ");
 });
 
 bot.launch().then(() => {
