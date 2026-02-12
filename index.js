@@ -1,7 +1,3 @@
-bot.on("text", (ctx) => {
-  console.log("MESSAGE:", ctx.message.text);
-});
-
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
 
@@ -15,6 +11,11 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
+// 👇 ต้องอยู่หลังประกาศ bot
+bot.on("text", (ctx) => {
+  console.log("MESSAGE:", ctx.message.text);
+});
+
 bot.command("check", async (ctx) => {
   try {
     await ctx.reply("✅ บอททำงานปกติ");
@@ -23,9 +24,10 @@ bot.command("check", async (ctx) => {
   }
 });
 
-// ให้บอทตอบในกลุ่มโดยตรง
-bot.telegram.sendMessage(GROUP_CHAT_ID, "🚀 Bot Started");
-
-bot.launch();
-
-console.log("🤖 Bot is running...");
+bot.launch().then(() => {
+  console.log("🤖 Bot is running...");
+  
+  if (GROUP_CHAT_ID) {
+    bot.telegram.sendMessage(GROUP_CHAT_ID, "🚀 Bot Started");
+  }
+});
