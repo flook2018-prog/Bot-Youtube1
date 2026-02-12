@@ -4,7 +4,7 @@ const express = require("express");
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8080; // ✅ แก้จาก 3306 เป็น 8080
 
 if (!BOT_TOKEN) {
   console.error("❌ ไม่พบ BOT_TOKEN");
@@ -25,15 +25,27 @@ app.listen(PORT, "0.0.0.0", () => {
 // ===== TELEGRAM BOT =====
 const bot = new Telegraf(BOT_TOKEN);
 
+// ✅ ใส่ command ก่อน on("text")
+bot.command("check", async (ctx) => {
+  console.log("CHECK COMMAND TRIGGERED");
+  try {
+    await ctx.reply("✅ บอททำงานปกติ");
+  } catch (err) {
+    console.error("Reply error:", err.message);
+  }
+});
+
+// log ทุกข้อความ
 bot.on("text", (ctx) => {
   console.log("MESSAGE:", ctx.message.text);
 });
 
-bot.command("check", async (ctx) => {
-  console.log("CHECK COMMAND TRIGGERED");
-  await ctx.reply("✅ บอททำงานปกติ");
+// error handler กันบอทเงียบ
+bot.catch((err) => {
+  console.error("Bot error:", err);
 });
 
+// monitor system
 require("./monitor")(bot);
 
 async function startBot() {
@@ -59,7 +71,6 @@ async function startBot() {
   }
 }
 
-
 startBot();
 
 process.once("SIGINT", () => {
@@ -71,4 +82,3 @@ process.once("SIGTERM", () => {
   console.log("SIGTERM received");
   bot.stop("SIGTERM");
 });
-
