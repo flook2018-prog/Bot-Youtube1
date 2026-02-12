@@ -3,29 +3,17 @@ const { Telegraf } = require("telegraf");
 const express = require("express");
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
-const PORT = process.env.PORT || 8080; // ✅ แก้จาก 3306 เป็น 8080
+const PORT = process.env.PORT || 8080;
 
 if (!BOT_TOKEN) {
   console.error("❌ ไม่พบ BOT_TOKEN");
   process.exit(1);
 }
 
-// ===== EXPRESS SERVER =====
 const app = express();
-
-app.get("/", (req, res) => {
-  res.status(200).send("OK");
-});
-
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🌐 Web server running on port ${PORT}`);
-});
-
-// ===== TELEGRAM BOT =====
 const bot = new Telegraf(BOT_TOKEN);
 
-// ✅ ใส่ command ก่อน on("text")
+// ===== COMMANDS =====
 bot.command("check", async (ctx) => {
   console.log("CHECK COMMAND TRIGGERED");
   try {
@@ -40,7 +28,7 @@ bot.on("text", (ctx) => {
   console.log("MESSAGE:", ctx.message.text);
 });
 
-// error handler กันบอทเงียบ
+// error handler
 bot.catch((err) => {
   console.error("Bot error:", err);
 });
@@ -48,10 +36,20 @@ bot.catch((err) => {
 // monitor system
 require("./monitor")(bot);
 
-async function startBot() {
-  try {
-    console.log("กำลังตั้ง webhook...");
+// ===== WEBHOOK ROUTE (ตัวที่คุณขาด!) =====
+app.use(bot.webhookCallback("/bot"));
 
+// health check
+app.get("/", (req, res) => {
+  res.status(200).send("OK");
+});
+
+// ===== START SERVER + SET WEBHOOK =====
+app.listen(PORT, "0.0.0.0", async () => {
+  console.log(`🌐 Web server running on port ${PORT}`);
+  console.log("📡 Monitor system started");
+
+  try {
     const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
     if (!WEBHOOK_URL) {
@@ -64,12 +62,9 @@ async function startBot() {
   } catch (err) {
     console.error("Bot start error:", err);
   }
-}
+});
 
-
-
-startBot();
-
+// graceful shutdown
 process.once("SIGINT", () => {
   console.log("SIGINT received");
   bot.stop("SIGINT");
