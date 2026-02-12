@@ -1,3 +1,7 @@
+bot.on("text", (ctx) => {
+  console.log("MESSAGE:", ctx.message.text);
+});
+
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
 
