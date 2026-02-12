@@ -11,36 +11,8 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// ===== DEBUG =====
 bot.on("text", (ctx) => {
   console.log("MESSAGE:", ctx.message.text);
-});
-
-// ===== COMMAND =====
-bot.command("check", async (ctx) => {
-  try {
-    await ctx.reply("✅ บอททำงานปกติ");
-  } catch (err) {
-    console.error(err);
-  }
-});
-
-// ===== LOAD MONITOR =====
-require("./monitor")(bot);
-
-// ===== LAUNCH =====
-bot.launch().then(async () => {
-  console.log("🤖 Bot is running...");
-
-  try {
-    await bot.telegram.sendMessage(
-      GROUP_CHAT_ID,
-      "🚀 Bot Started"
-    );
-    console.log("ส่งข้อความเข้า Group สำเร็จ");
-  } catch (err) {
-    console.error("ส่งเข้า Group ไม่สำเร็จ:", err.message);
-  }
 });
 
 bot.command("check", async (ctx) => {
@@ -48,6 +20,30 @@ bot.command("check", async (ctx) => {
   await ctx.reply("✅ บอททำงานปกติ");
 });
 
-// graceful stop
+// โหลด monitor
+require("./monitor")(bot);
+
+async function startBot() {
+  try {
+    // 🔥 ลบ webhook ก่อนทุกครั้ง
+    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+
+    await bot.launch();
+    console.log("🤖 Bot is running...");
+
+    if (GROUP_CHAT_ID) {
+      await bot.telegram.sendMessage(
+        GROUP_CHAT_ID,
+        "🚀 Bot Started"
+      );
+    }
+
+  } catch (err) {
+    console.error("Bot start error:", err);
+  }
+}
+
+startBot();
+
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
