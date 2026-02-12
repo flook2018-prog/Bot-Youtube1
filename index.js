@@ -11,31 +11,35 @@ if (!BOT_TOKEN) {
   process.exit(1);
 }
 
+// ===== EXPRESS SERVER =====
+const app = express();
+
+app.get("/", (req, res) => {
+  res.status(200).send("OK");
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🌐 Web server running on port ${PORT}`);
+});
+
+// ===== TELEGRAM BOT =====
 const bot = new Telegraf(BOT_TOKEN);
 
-// ===== DEBUG =====
 bot.on("text", (ctx) => {
   console.log("MESSAGE:", ctx.message.text);
 });
 
-// ===== COMMAND =====
 bot.command("check", async (ctx) => {
   console.log("CHECK COMMAND TRIGGERED");
   await ctx.reply("✅ บอททำงานปกติ");
 });
 
-// ===== LOAD MONITOR =====
 require("./monitor")(bot);
 
-// ===== START FUNCTION =====
 async function startBot() {
   try {
-    console.log("กำลังลบ webhook...");
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-
-    console.log("กำลัง launch bot...");
     await bot.launch();
-
     console.log("🤖 Bot is running...");
 
     if (GROUP_CHAT_ID) {
@@ -53,17 +57,5 @@ async function startBot() {
 
 startBot();
 
-// ===== EXPRESS SERVER (กัน Railway restart) =====
-const app = express();
-
-app.get("/", (req, res) => {
-  res.send("Bot is alive");
-});
-
-app.listen(PORT, () => {
-  console.log(`🌐 Web server running on port ${PORT}`);
-});
-
-// ===== GRACEFUL STOP =====
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+process.once("SIGINT", () => {
+  console.log("SIGIN
