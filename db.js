@@ -1,5 +1,3 @@
-const mysql = require("mysql2/promise");
-
 const pool = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
@@ -7,4 +5,6 @@ const pool = mysql.createPool({
   database: process.env.MYSQL_DATABASE
 });
 
-module.exports = pool;
+pool.getConnection()
+  .then(() => console.log("✅ Connected to MySQL"))
+  .catch(err => console.error("❌ MySQL connection error:", err.message));
