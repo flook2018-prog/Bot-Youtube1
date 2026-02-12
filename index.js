@@ -1,6 +1,8 @@
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
 const express = require("express");
+const db = require("./db");
+const { getChannelFullInfo } = require("./youtube");
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const PORT = process.env.PORT || 8080;
@@ -13,41 +15,190 @@ if (!BOT_TOKEN) {
 const app = express();
 const bot = new Telegraf(BOT_TOKEN);
 
-// ===== COMMANDS =====
+
+
+// =========================
+// ✅ CHECK
+// =========================
 bot.command("check", async (ctx) => {
-  console.log("CHECK COMMAND TRIGGERED");
+  await ctx.reply("✅ บอททำงานปกติ");
+});
+
+
+
+// =========================
+// ✅ ADD CHANNEL (รองรับ URL)
+// =========================
+bot.command("add", async (ctx) => {
+  const args = ctx.message.text.split(" ");
+  const input = args[1];
+
+  if (!input) {
+    return ctx.reply("ใช้แบบนี้:\n/add ลิงก์ช่อง หรือ UCxxxx");
+  }
+
   try {
-    await ctx.reply("✅ บอททำงานปกติ");
+    const info = await getChannelFullInfo(input);
+
+    if (info.status !== "Alive") {
+      return ctx.reply("ไม่พบช่อง หรือช่องถูกลบแล้ว");
+    }
+
+    const channelId = info.channel_id;
+    const groupId = ctx.chat.id;
+
+    // สร้าง user ถ้ายังไม่มี
+    await db.query(
+      "INSERT IGNORE INTO users (group_id) VALUES (?)",
+      [groupId]
+    );
+
+    const [user] = await db.query(
+      "SELECT id FROM users WHERE group_id = ?",
+      [groupId]
+    );
+
+    const userId = user[0].id;
+
+    // เช็คซ้ำ
+    const [existing] = await db.query(
+      "SELECT id FROM channels WHERE channel_id = ? AND user_id = ?",
+      [channelId, userId]
+    );
+
+    if (existing.length > 0) {
+      return ctx.reply("ช่องนี้ถูกเพิ่มแล้ว ⚠️");
+    }
+
+    // เพิ่มก่อนเพื่อให้ auto increment ทำงาน
+    const [result] = await db.query(
+      "INSERT INTO channels (channel_id, user_id, last_status) VALUES (?, ?, 'Unknown')",
+      [channelId, userId]
+    );
+
+    const insertedId = result.insertId;
+
+    const [row] = await db.query(
+      "SELECT code_number FROM channels WHERE id = ?",
+      [insertedId]
+    );
+
+    const number = row[0].code_number;
+    const code = "CH" + String(number).padStart(4, "0");
+
+    await db.query(
+      "UPDATE channels SET code = ? WHERE id = ?",
+      [code, insertedId]
+    );
+
+    await ctx.reply(
+      `เพิ่มช่องเรียบร้อย ✅\n\nชื่อ: ${info.name}\nรหัส: ${code}`
+    );
+
   } catch (err) {
-    console.error("Reply error:", err.message);
+    console.error(err);
+    ctx.reply("เกิดข้อผิดพลาด");
   }
 });
 
-// log ทุกข้อความ
-bot.on("text", (ctx) => {
-  console.log("MESSAGE:", ctx.message.text);
+
+
+// =========================
+// ✅ REMOVE BY CODE
+// =========================
+bot.command("remove", async (ctx) => {
+  const args = ctx.message.text.split(" ");
+  const code = args[1];
+
+  if (!code) {
+    return ctx.reply("ใช้แบบนี้:\n/remove CH0001");
+  }
+
+  try {
+    const groupId = ctx.chat.id;
+
+    const [user] = await db.query(
+      "SELECT id FROM users WHERE group_id = ?",
+      [groupId]
+    );
+
+    if (!user.length) {
+      return ctx.reply("ไม่พบข้อมูลกลุ่ม");
+    }
+
+    const userId = user[0].id;
+
+    const [result] = await db.query(
+      "DELETE FROM channels WHERE code = ? AND user_id = ?",
+      [code, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return ctx.reply("ไม่พบรหัสนี้");
+    }
+
+    ctx.reply(`ลบช่อง ${code} เรียบร้อย 🗑️`);
+
+  } catch (err) {
+    console.error(err);
+    ctx.reply("เกิดข้อผิดพลาด");
+  }
 });
 
-// error handler
-bot.catch((err) => {
-  console.error("Bot error:", err);
+
+
+// =========================
+// ✅ LIST CHANNELS
+// =========================
+bot.command("list", async (ctx) => {
+  try {
+    const groupId = ctx.chat.id;
+
+    const [user] = await db.query(
+      "SELECT id FROM users WHERE group_id = ?",
+      [groupId]
+    );
+
+    if (!user.length) {
+      return ctx.reply("ยังไม่มีช่องที่เพิ่มไว้");
+    }
+
+    const userId = user[0].id;
+
+    const [channels] = await db.query(
+      "SELECT channel_id, code FROM channels WHERE user_id = ?",
+      [userId]
+    );
+
+    if (!channels.length) {
+      return ctx.reply("ยังไม่มีช่องที่เพิ่มไว้");
+    }
+
+    const list = channels
+      .map(c => `• ${c.code} → ${c.channel_id}`)
+      .join("\n");
+
+    ctx.reply(`📋 รายการช่อง:\n\n${list}`);
+
+  } catch (err) {
+    console.error(err);
+    ctx.reply("เกิดข้อผิดพลาด");
+  }
 });
 
-// monitor system
-require("./monitor")(bot);
 
-// ===== WEBHOOK ROUTE (ตัวที่คุณขาด!) =====
+
+// =========================
+// WEBHOOK
+// =========================
 app.use(bot.webhookCallback("/bot"));
 
-// health check
 app.get("/", (req, res) => {
   res.status(200).send("OK");
 });
 
-// ===== START SERVER + SET WEBHOOK =====
 app.listen(PORT, "0.0.0.0", async () => {
   console.log(`🌐 Web server running on port ${PORT}`);
-  console.log("📡 Monitor system started");
 
   try {
     const WEBHOOK_URL = process.env.WEBHOOK_URL;
@@ -64,13 +215,5 @@ app.listen(PORT, "0.0.0.0", async () => {
   }
 });
 
-// graceful shutdown
-process.once("SIGINT", () => {
-  console.log("SIGINT received");
-  bot.stop("SIGINT");
-});
-
-process.once("SIGTERM", () => {
-  console.log("SIGTERM received");
-  bot.stop("SIGTERM");
-});
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
