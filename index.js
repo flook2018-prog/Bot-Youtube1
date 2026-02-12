@@ -38,7 +38,11 @@ require("./monitor")(bot);
 
 async function startBot() {
   try {
+    console.log("กำลังลบ webhook...");
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    console.log("ลบ webhook สำเร็จ");
+
+    console.log("กำลัง launch bot...");
     await bot.launch();
     console.log("🤖 Bot is running...");
 
@@ -51,9 +55,10 @@ async function startBot() {
     }
 
   } catch (err) {
-    console.error("Bot start error:", err.message);
+    console.error("Bot start error:", err);
   }
 }
+
 
 startBot();
 
