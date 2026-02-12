@@ -1,54 +1,27 @@
+require("dotenv").config();
+const { Telegraf } = require("telegraf");
+
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
+
+if (!BOT_TOKEN) {
+  console.error("❌ ไม่พบ BOT_TOKEN");
+  process.exit(1);
+}
+
+const bot = new Telegraf(BOT_TOKEN);
+
 bot.command("check", async (ctx) => {
   try {
-    const user = await getUser(ctx.from.id);
-    const [rows] = await db.query(
-      "SELECT * FROM channels WHERE user_id = ?",
-      [user.id]
-    );
-
-    if (!rows.length) {
-      return ctx.reply("ยังไม่มีช่องในระบบ");
-    }
-
-    let msg = "📊 รายงานสถานะช่อง YouTube\n\n";
-    let index = 1;
-
-    for (let ch of rows) {
-      try {
-        const info = await getChannelFullInfo(ch.channel_id);
-        const shortUrl = await shortLink(ch.url);
-
-        if (info.status !== "Alive") {
-          msg += `${index}️⃣ ${ch.name}\n`;
-          msg += `🔗 ${shortUrl}\n`;
-          msg += `Status: ❌ ${info.status}\n\n`;
-          index++;
-          continue;
-        }
-
-        msg += `${index}️⃣ ${info.name}\n`;
-        msg += `🔗 ${shortUrl}\n`;
-        msg += `Status: ✅ Alive\n`;
-        msg += `🎥 จำนวนวิดีโอทั้งหมด: ${info.videoCount}\n\n`;
-
-        info.videos.forEach((v, i) => {
-          msg += `🎬 คลิป ${i + 1}: ${v.title}\n`;
-          msg += `   👍 ไลค์: ${v.likeCount}\n`;
-          msg += `   💬 คอมเมนต์: ${v.commentCount}\n\n`;
-        });
-
-        index++;
-      } catch (err) {
-        msg += `${index}️⃣ ${ch.name}\n`;
-        msg += `❌ เกิดข้อผิดพลาดในการดึงข้อมูล\n\n`;
-        index++;
-      }
-    }
-
-    ctx.reply(msg);
-
+    await ctx.reply("✅ บอททำงานปกติ");
   } catch (err) {
     console.error(err);
-    ctx.reply("เกิดข้อผิดพลาดในระบบ");
   }
 });
+
+// ให้บอทตอบในกลุ่มโดยตรง
+bot.telegram.sendMessage(GROUP_CHAT_ID, "🚀 Bot Started");
+
+bot.launch();
+
+console.log("🤖 Bot is running...");
