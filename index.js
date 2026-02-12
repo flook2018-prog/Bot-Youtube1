@@ -50,24 +50,22 @@ require("./monitor")(bot);
 
 async function startBot() {
   try {
-    console.log("กำลัง launch bot...");
-    await bot.launch({
-      dropPendingUpdates: true
-    });
-    console.log("🤖 Bot is running...");
+    console.log("กำลังตั้ง webhook...");
 
-    if (GROUP_CHAT_ID) {
-      await bot.telegram.sendMessage(
-        GROUP_CHAT_ID,
-        "🚀 Bot Started"
-      );
-      console.log("ส่งข้อความเข้า Group สำเร็จ");
+    const WEBHOOK_URL = process.env.WEBHOOK_URL;
+
+    if (!WEBHOOK_URL) {
+      throw new Error("WEBHOOK_URL not set");
     }
+
+    await bot.telegram.setWebhook(`${WEBHOOK_URL}/bot`);
+    console.log("Webhook set สำเร็จ");
 
   } catch (err) {
     console.error("Bot start error:", err);
   }
 }
+
 
 
 startBot();
