@@ -1,36 +1,37 @@
 const cron = require("node-cron");
 const db = require("./db");
 const { getChannelFullInfo } = require("./youtube");
-const { Telegraf } = require("telegraf");
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+module.exports = (bot) => {
 
-cron.schedule("*/5 * * * *", async () => {
-  const [rows] = await db.query("SELECT * FROM channels");
+  cron.schedule("*/5 * * * *", async () => {
+    const [rows] = await db.query("SELECT * FROM channels");
 
-  for (let ch of rows) {
-    const info = await getChannelFullInfo(ch.channel_id);
+    for (let ch of rows) {
+      const info = await getChannelFullInfo(ch.channel_id);
 
-    if (info.status !== ch.last_status) {
-      await db.query(
-        "UPDATE channels SET last_status = ? WHERE id = ?",
-        [info.status, ch.id]
-      );
-
-      const [user] = await db.query(
-        "SELECT group_id FROM users WHERE id = ?",
-        [ch.user_id]
-      );
-
-      if (user[0]?.group_id) {
-        const emoji =
-          info.status === "Alive" ? "🟢" : "🔴";
-
-        bot.telegram.sendMessage(
-          user[0].group_id,
-          `🚨 สถานะช่องเปลี่ยน!\n\n🎬 ${info.name}\nสถานะใหม่: ${emoji} ${info.status}`
+      if (info.status !== ch.last_status) {
+        await db.query(
+          "UPDATE channels SET last_status = ? WHERE id = ?",
+          [info.status, ch.id]
         );
+
+        const [user] = await db.query(
+          "SELECT group_id FROM users WHERE id = ?",
+          [ch.user_id]
+        );
+
+        if (user[0]?.group_id) {
+          const emoji =
+            info.status === "Alive" ? "🟢" : "🔴";
+
+          await bot.telegram.sendMessage(
+            user[0].group_id,
+            `🚨 สถานะช่องเปลี่ยน!\n\n🎬 ${info.name}\nสถานะใหม่: ${emoji} ${info.status}`
+          );
+        }
       }
     }
-  }
-});
+  });
+
+};
