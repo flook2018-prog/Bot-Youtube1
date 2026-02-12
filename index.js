@@ -11,20 +11,35 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
-require("./monitor")(bot); // 👈 สำคัญมาก
-
+// ====== DEBUG MESSAGE ======
 bot.on("text", (ctx) => {
   console.log("MESSAGE:", ctx.message.text);
 });
 
+// ====== COMMAND ======
 bot.command("check", async (ctx) => {
-  await ctx.reply("✅ บอททำงานปกติ");
-});
-
-bot.launch().then(() => {
-  console.log("🤖 Bot is running...");
-  
-  if (GROUP_CHAT_ID) {
-    bot.telegram.sendMessage(GROUP_CHAT_ID, "🚀 Bot Started");
+  try {
+    await ctx.reply("✅ บอททำงานปกติ");
+  } catch (err) {
+    console.error(err);
   }
 });
+
+// ====== LOAD MONITOR (ส่ง bot เข้าไป) ======
+require("./monitor")(bot);
+
+// ====== LAUNCH ======
+bot.launch().then(async () => {
+  console.log("🤖 Bot is running...");
+
+  if (GROUP_CHAT_ID) {
+    await bot.telegram.sendMessage(
+      GROUP_CHAT_ID,
+      "🚀 Bot Started"
+    );
+  }
+});
+
+// ป้องกัน crash
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
