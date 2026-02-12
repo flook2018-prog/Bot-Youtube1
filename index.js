@@ -4,7 +4,7 @@ const express = require("express");
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
-const PORT = process.env.PORT || 3306;
+const PORT = process.env.PORT || 8080;
 
 if (!BOT_TOKEN) {
   console.error("❌ ไม่พบ BOT_TOKEN");
