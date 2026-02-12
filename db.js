@@ -8,14 +8,28 @@ const pool = mysql.createPool({
   port: process.env.DB_PORT || 3306
 });
 
-// ทดสอบการเชื่อมต่อ
-pool.getConnection()
-  .then(conn => {
+async function initDatabase() {
+  try {
+    const connection = await pool.getConnection();
     console.log("✅ Connected to MySQL");
-    conn.release();
-  })
-  .catch(err => {
-    console.error("❌ MySQL connection error:", err.message);
-  });
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS channels (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        channel_id VARCHAR(255) NOT NULL,
+        channel_name VARCHAR(255),
+        last_video_id VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log("✅ Table 'channels' is ready");
+    connection.release();
+  } catch (err) {
+    console.error("❌ Database init error:", err.message);
+  }
+}
+
+initDatabase();
 
 module.exports = pool;
