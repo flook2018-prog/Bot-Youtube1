@@ -43,6 +43,11 @@ bot.launch().then(async () => {
   }
 });
 
+bot.command("check", async (ctx) => {
+  console.log("CHECK COMMAND TRIGGERED");
+  await ctx.reply("✅ บอททำงานปกติ");
+});
+
 // graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
